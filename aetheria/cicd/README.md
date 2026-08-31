@@ -2,7 +2,7 @@
 
 Todo lo necesario para integrar AETHERIA Security en tus pipelines:
 escaneo automático, PR con fixes de IA, reporte PDF detallado y
-servidor MCP remoto para agentes (Devin, Windsurf, Cursor, Claude).
+servidor MCP remoto para agentes cloud e IDEs.
 
 ```
 cicd/
@@ -148,7 +148,7 @@ curl -s "$AETHERIA_URL/api/v1/scan/$SCAN_ID/report?format=pdf" \
   -H "Authorization: Bearer $AETHERIA_API_KEY" -o report.pdf
 ```
 
-## 5. MCP server remoto (Devin, agentes cloud, CI bots)
+## 5. MCP server remoto (agentes cloud, CI bots)
 
 El MCP habla **StreamableHTTP** para clientes que no pueden ejecutar un
 proceso local. Cada request autentica con su propio Bearer (multi-tenant).
@@ -170,7 +170,7 @@ MCP_TRANSPORT=http MCP_HTTP_PORT=3100 \
   node dist/index.js
 ```
 
-### Config del cliente (Devin / cualquier MCP remoto)
+### Config del cliente (cualquier MCP remoto)
 
 ```json
 {

@@ -145,7 +145,7 @@ Once published to npm:
 }
 ```
 
-### ☁️ Remote mode (Devin, cloud agents, CI bots)
+### ☁️ Remote mode (cloud agents, CI bots)
 
 The server also speaks **StreamableHTTP** for clients that cannot spawn a
 local process. Each request authenticates with its own Bearer token — one
@@ -158,7 +158,7 @@ MCP_TRANSPORT=http MCP_HTTP_PORT=3100 AETHERIA_URL=https://eatheria.com \
 # → listening on :3100/mcp  (MCP_TRANSPORT=all runs stdio + http together)
 ```
 
-Client config (Devin / remote MCP clients):
+Client config (remote MCP clients):
 
 ```json
 {

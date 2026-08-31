@@ -4,7 +4,7 @@
 #   docker compose -f docker-compose.mcp.yml up -d --build
 #
 # Serves the 14 AETHERIA security tools over HTTP for remote agents
-# (Devin, cloud IDEs, CI bots). Clients authenticate per-request with
+# (cloud IDEs, CI bots). Clients authenticate per-request with
 # their own AETHERIA API key (Bearer) — one container serves every
 # company. AETHERIA_API_KEY below is only a fallback for stdio use.
 # ============================================================

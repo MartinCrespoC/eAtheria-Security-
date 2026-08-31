@@ -1210,7 +1210,7 @@ async function startStdio() {
 }
 
 /**
- * StreamableHTTP transport for remote agents (Devin, cloud IDEs, CI bots).
+ * StreamableHTTP transport for remote agents (cloud IDEs, CI bots).
  * Stateful sessions; clients authenticate per-request with their own
  * `Authorization: Bearer <AETHERIA_API_KEY>` — the key is forwarded to the
  * platform, so one hosted MCP serves every company.
