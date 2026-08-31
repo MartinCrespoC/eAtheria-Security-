@@ -103,7 +103,7 @@
     "jsdom": "^29.0.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5",
+    "typescript": "^7",
     "vitest": "^4.1.4"
   },
   "overrides": {
