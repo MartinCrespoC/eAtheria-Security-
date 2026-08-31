@@ -1,0 +1,66 @@
+{
+  "run": "fp-benchmark-scorecard-2026-07-30T21:04:15",
+  "source": "scorecard",
+  "kind": "assessment",
+  "repo": "file:///tmp/scorecard-clean-WMC6MN",
+  "acquisition": "binary",
+  "overallScore10": 10,
+  "normalized": 1,
+  "checks": [
+    {
+      "name": "Binary-Artifacts",
+      "score": 10,
+      "reason": "no binaries found in the repo"
+    },
+    {
+      "name": "Dangerous-Workflow",
+      "score": 10,
+      "reason": "no dangerous workflow patterns detected"
+    },
+    {
+      "name": "Dependency-Update-Tool",
+      "score": 10,
+      "reason": "update tool detected"
+    },
+    {
+      "name": "Fuzzing",
+      "score": 10,
+      "reason": "project is fuzzed"
+    },
+    {
+      "name": "License",
+      "score": 9,
+      "reason": "license file detected"
+    },
+    {
+      "name": "Packaging",
+      "score": -1,
+      "reason": "packaging workflow not detected"
+    },
+    {
+      "name": "Pinned-Dependencies",
+      "score": 10,
+      "reason": "all dependencies are pinned"
+    },
+    {
+      "name": "SAST",
+      "score": 10,
+      "reason": "SAST tool detected: CodeQL"
+    },
+    {
+      "name": "Security-Policy",
+      "score": 10,
+      "reason": "security policy file detected"
+    },
+    {
+      "name": "Token-Permissions",
+      "score": 10,
+      "reason": "GitHub workflow tokens follow principle of least privilege"
+    },
+    {
+      "name": "Vulnerabilities",
+      "score": 10,
+      "reason": "0 existing vulnerabilities detected"
+    }
+  ]
+}

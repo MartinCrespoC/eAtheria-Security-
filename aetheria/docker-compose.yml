@@ -1,0 +1,103 @@
+# ============================================================
+# AETHERIA Security Platform — "todo solito"
+#
+#   docker compose up -d --build
+#
+# That's it. This stack:
+#   - Starts PostgreSQL + Redis (with healthchecks)
+#   - Builds the app image (WhatsApp runs on Baileys — no browser needed)
+#   - On boot the app waits for the DB, applies migrations, seeds the
+#     catalog (CWE / licenses / AI providers & models) and auto-generates
+#     its own secrets — no manual setup on the server.
+#   - Open http://localhost:3000 → the one-time setup wizard finishes the
+#     rest (admin account, company, AI API key, optional WhatsApp QR).
+#
+# Optional: create a `.env` next to this file to override any variable below
+# (DB_PASSWORD, NEXTAUTH_URL, GOOGLE_API_KEY, ...). Everything has a default.
+# ============================================================
+name: aetheria
+
+services:
+  # ── Database ────────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: aetheria-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-aetheriadb}
+      POSTGRES_USER: ${DB_USER:-aetheria}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - aetheria-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-aetheria} -d ${DB_NAME:-aetheriadb}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Cache / rate limiting ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: aetheria-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - aetheria-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Application ─────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aetheria-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-aetheria}:${DB_PASSWORD:?DB_PASSWORD is required}@db:5432/${DB_NAME:-aetheriadb}
+      REDIS_URL: redis://redis:6379
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # Leave empty to let the entrypoint auto-generate & persist strong secrets.
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      # Optional integrations (all safe to leave empty).
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      # Persist auto-generated secrets and the WhatsApp linked-device
+      # credentials (Baileys) so neither the QR nor the login need to be
+      # repeated across restarts.
+      - secrets:/app/.secrets
+      - baileys-auth:/app/.baileys_auth
+    networks:
+      - aetheria-internal
+
+volumes:
+  pgdata:
+  redis-data:
+  secrets:
+  baileys-auth:
+
+networks:
+  aetheria-internal:
+    driver: bridge

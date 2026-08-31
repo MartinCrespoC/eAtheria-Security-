@@ -1,0 +1,186 @@
+# ============================================================
+# AETHERIA Security Scan — GitLab CI/CD Template
+# ============================================================
+#
+# Reusable job that packages the repository source, sends it to the
+# AETHERIA CI/CD API (/api/v1/scan) as a base64 ZIP, polls for results,
+# and fails the pipeline if findings reach the configured severity gate.
+#
+# ------------------------------------------------------------
+# USAGE — include this file from your project's .gitlab-ci.yml:
+# ------------------------------------------------------------
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/aetheria/aetheria/main/gitlab-ci/aetheria-scan.yml'
+#     # or, if self-hosted / vendored:
+#     # - local: '/gitlab-ci/aetheria-scan.yml'
+#
+#   aetheria-scan:
+#     stage: test
+#     variables:
+#       AETHERIA_API_KEY: $AETHERIA_API_KEY   # CI/CD variable (masked), aeth_xxx
+#       AETHERIA_URL: "https://aetheria.ikharoz.me"
+#       SCAN_TYPES: "sast,sca"
+#       FAIL_ON: "critical"                    # critical | high | medium | low | none
+#
+# ------------------------------------------------------------
+# REQUIRED CI/CD VARIABLES (Settings → CI/CD → Variables):
+#   AETHERIA_API_KEY  (masked)  Your AETHERIA API key (aeth_xxx)
+#
+# OPTIONAL VARIABLES (override per-job or globally):
+#   AETHERIA_URL   Base URL of the AETHERIA API. Default: https://aetheria.ikharoz.me
+#   SCAN_TYPES     Comma-separated: sast,sca,dast. Default: sast,sca
+#   FAIL_ON        Severity gate: critical|high|medium|low|none. Default: critical
+# ============================================================
+
+aetheria-scan:
+  image: alpine:3.20
+  stage: test
+  variables:
+    AETHERIA_URL: "https://aetheria.ikharoz.me"
+    SCAN_TYPES: "sast,sca"
+    FAIL_ON: "critical"
+  before_script:
+    - apk add --no-cache zip curl jq bash >/dev/null 2>&1
+  script:
+    - |
+      set -e
+
+      echo "🛡️  AETHERIA Security Scan"
+      echo "   Repository: ${CI_PROJECT_PATH}"
+      echo "   Branch:     ${CI_COMMIT_BRANCH:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-main}}"
+      echo "   Commit:     ${CI_COMMIT_SHORT_SHA}"
+      echo "   Scan types: ${SCAN_TYPES}"
+      echo ""
+
+      if [ -z "${AETHERIA_API_KEY}" ]; then
+        echo "❌ AETHERIA_API_KEY is not set. Add it under Settings → CI/CD → Variables."
+        exit 1
+      fi
+
+      REPO="${CI_PROJECT_PATH}"
+      BRANCH="${CI_COMMIT_BRANCH:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-main}}"
+      COMMIT="${CI_COMMIT_SHA}"
+
+      # Parse scan types into a JSON array
+      IFS="," read -ra SCAN_ARRAY <<< "${SCAN_TYPES}"
+      SCAN_JSON=$(printf '"%s",' "${SCAN_ARRAY[@]}" | sed 's/,$//')
+
+      # ---- 1. Package source code ----
+      echo "📦 Packaging source code..."
+      ZIP_FILE=$(mktemp /tmp/aetheria-src-XXXXXX.zip)
+      B64_FILE=$(mktemp /tmp/aetheria-b64-XXXXXX.txt)
+      PAYLOAD_FILE=$(mktemp /tmp/aetheria-payload-XXXXXX.json)
+      trap 'rm -f "$ZIP_FILE" "$B64_FILE" "$PAYLOAD_FILE"' EXIT
+
+      cd "${CI_PROJECT_DIR}"
+      zip -rq "${ZIP_FILE}" . \
+        -x "*.git/*" "*node_modules/*" "*dist/*" "*build/*" "*out/*" \
+           "*vendor/*" "*vendors/*" "*__pycache__/*" "*.venv/*" "*venv/*" \
+           "*site-packages/*" "*target/*" "*.next/*" "*coverage/*" \
+           "*.nyc_output/*" "*.cache/*" "*.parcel-cache/*" "*.gradle/*" \
+           "*.m2/*" "*Pods/*" "*bower_components/*" "*.terraform/*" \
+           "*pkg/*" "*bin/*" "*obj/*" 2>/dev/null || true
+
+      base64 -w0 "${ZIP_FILE}" > "${B64_FILE}" 2>/dev/null || base64 "${ZIP_FILE}" | tr -d '\n' > "${B64_FILE}"
+      ZIP_SIZE=$(wc -c < "${ZIP_FILE}" | tr -d ' ')
+      echo "   Source packaged: ${ZIP_SIZE} bytes (zip)"
+
+      # ---- 2. Trigger scan ----
+      jq -n \
+        --arg repository "${REPO}" \
+        --arg branch "${BRANCH}" \
+        --arg commit "${COMMIT}" \
+        --rawfile code "${B64_FILE}" \
+        --argjson scanTypes "[${SCAN_JSON}]" \
+        '{repository: $repository, branch: $branch, commit: $commit, scanTypes: $scanTypes, code: ($code | gsub("\\s+";""))}' > "${PAYLOAD_FILE}"
+
+      RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${AETHERIA_URL}/api/v1/scan" \
+        -H "Authorization: Bearer ${AETHERIA_API_KEY}" \
+        -H "Content-Type: application/json" \
+        -d @"${PAYLOAD_FILE}")
+
+      HTTP_CODE=$(echo "${RESPONSE}" | tail -1)
+      BODY=$(echo "${RESPONSE}" | sed '$d')
+
+      if [ "${HTTP_CODE}" != "202" ]; then
+        echo "❌ Failed to start scan (HTTP ${HTTP_CODE}):"
+        echo "${BODY}" | jq . 2>/dev/null || echo "${BODY}"
+        exit 1
+      fi
+
+      SCAN_ID=$(echo "${BODY}" | jq -r '.id')
+      echo "✅ Scan started: ${SCAN_ID}"
+      echo ""
+
+      # ---- 3. Poll for results ----
+      echo "⏳ Waiting for results..."
+      MAX_WAIT=300
+      ELAPSED=0
+      INTERVAL=10
+      STATUS="PENDING"
+
+      while [ ${ELAPSED} -lt ${MAX_WAIT} ]; do
+        sleep ${INTERVAL}
+        ELAPSED=$((ELAPSED + INTERVAL))
+
+        RESULT=$(curl -s -X GET "${AETHERIA_URL}/api/v1/scan/${SCAN_ID}" \
+          -H "Authorization: Bearer ${AETHERIA_API_KEY}")
+
+        STATUS=$(echo "${RESULT}" | jq -r '.status')
+
+        if [ "${STATUS}" = "COMPLETED" ] || [ "${STATUS}" = "FAILED" ]; then
+          break
+        fi
+
+        echo "   Status: ${STATUS} (${ELAPSED}s elapsed)"
+      done
+
+      if [ "${STATUS}" = "FAILED" ]; then
+        echo "❌ Scan failed"
+        echo "${RESULT}" | jq '.error // .message // empty' 2>/dev/null
+        exit 1
+      fi
+
+      if [ "${STATUS}" != "COMPLETED" ]; then
+        echo "⏰ Scan timed out after ${MAX_WAIT}s (status: ${STATUS})"
+        echo "   Check results at: ${AETHERIA_URL}/api/v1/scan/${SCAN_ID}"
+        exit 1
+      fi
+
+      # ---- 4. Parse results ----
+      TOTAL=$(echo "${RESULT}" | jq '.summary.total')
+      CRITICAL=$(echo "${RESULT}" | jq '.summary.critical')
+      HIGH=$(echo "${RESULT}" | jq '.summary.high')
+      MEDIUM=$(echo "${RESULT}" | jq '.summary.medium')
+      LOW=$(echo "${RESULT}" | jq '.summary.low')
+
+      echo ""
+      echo "📊 Scan Results"
+      echo "   Total issues:  ${TOTAL}"
+      echo "   🔴 Critical:   ${CRITICAL}"
+      echo "   🟠 High:       ${HIGH}"
+      echo "   🟡 Medium:     ${MEDIUM}"
+      echo "   🔵 Low:        ${LOW}"
+      echo ""
+
+      # ---- 5. Fail if threshold exceeded ----
+      SHOULD_FAIL=false
+      case "${FAIL_ON}" in
+        critical) [ "${CRITICAL}" -gt 0 ] && SHOULD_FAIL=true ;;
+        high)     { [ "${CRITICAL}" -gt 0 ] || [ "${HIGH}" -gt 0 ]; } && SHOULD_FAIL=true ;;
+        medium)   { [ "${CRITICAL}" -gt 0 ] || [ "${HIGH}" -gt 0 ] || [ "${MEDIUM}" -gt 0 ]; } && SHOULD_FAIL=true ;;
+        low)      [ "${TOTAL}" -gt 0 ] && SHOULD_FAIL=true ;;
+        none)     SHOULD_FAIL=false ;;
+      esac
+
+      if [ "${SHOULD_FAIL}" = "true" ]; then
+        echo "❌ Security gate FAILED — found issues at or above '${FAIL_ON}' severity"
+        exit 1
+      else
+        echo "✅ Security gate PASSED"
+      fi
+  rules:
+    - if: '$AETHERIA_API_KEY'
+      when: on_success
+    - when: never

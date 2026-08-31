@@ -1,0 +1,1172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Multi-DB Support: Default is postgresql.
+  // Use src/lib/infrastructure/db-setup.ts to switch provider.
+  // Supported: postgresql | sqlite | mysql
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== SYSTEM CONFIGURATION ====================
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model AIProvider {
+  id                 String   @id @default(cuid())
+  slug               String   @unique // "openai", "anthropic", "gemini", "openrouter", etc.
+  name               String // Display name: "OpenAI", "Anthropic", etc.
+  type               String // "openai-compatible" | "anthropic" | "google-gemini" | "google-gemini-oauth" | "azure-openai" | "aws-bedrock" | "copilot"
+  baseUrl            String? // Custom base URL (null = provider default)
+  apiKeyEnc          String?  @db.Text // AES-256-GCM encrypted API key
+  authType           String   @default("api_key") // "api_key" | "oauth" | "aws_credentials"
+  isActive           Boolean  @default(false)
+  config             Json? // Extra config (headers, org_id, oauth tokens, etc.)
+  fallbackProviderId String? // Provider to use if this one is down
+  companyId          String? // null = global/system provider; set = owned by that company
+  maxTokensPerMonth  Int? // Global token limit per month
+  costLimitPerMonth  Decimal? // USD cost limit per month
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  models       AIModel[]
+  companies    Company[]
+  owner        Company?        @relation("ProviderOwner", fields: [companyId], references: [id], onDelete: Cascade)
+  healthChecks AIHealthCheck[]
+
+  @@index([companyId])
+  @@map("ai_providers")
+}
+
+// ==================== AI HEALTH CHECKS ====================
+
+model AIHealthCheck {
+  id         String     @id @default(cuid())
+  providerId String
+  status     String // healthy, degraded, down
+  latencyMs  Int
+  error      String?
+  checkedAt  DateTime   @default(now())
+  provider   AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, checkedAt])
+  @@map("ai_health_checks")
+}
+
+model AIModel {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  provider        String // gemini, openai, anthropic, azure (legacy field)
+  modelId         String // gemini-2.5-flash-lite, gpt-4, etc.
+  inputTokenCost  Decimal // Cost per 1M tokens
+  outputTokenCost Decimal
+  maxInputTokens  Int
+  maxOutputTokens Int
+  isActive        Boolean  @default(true)
+  isDefault       Boolean  @default(false)
+  providerId      String? // FK to AIProvider
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  aiProvider  AIProvider?  @relation(fields: [providerId], references: [id])
+  tokenUsages TokenUsage[]
+
+  @@index([providerId])
+  @@map("ai_models")
+}
+
+// ==================== COMPANIES (TENANTS) ====================
+
+model Company {
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  email                 String
+  phone                 String?
+  address               String?
+  logoUrl               String?
+  faviconUrl            String?
+  primaryColor          String?  @default("#6366f1")
+  secondaryColor        String?  @default("#8b5cf6")
+  defaultLanguage       String   @default("en") // "en" | "es"
+  portalTitle           String?  @default("AETHERIA Security")
+  portalSlogan          String?  @default("Enterprise Security Platform")
+  aiProviderId          String? // Assigned AI provider for this company
+  aiTokenLimit          Int? // Monthly token limit for this company
+  aiCostLimit           Decimal? // Monthly cost limit USD
+  customInputTokenCost  Decimal? // Override: cost per 1M input tokens for this company
+  customOutputTokenCost Decimal? // Override: cost per 1M output tokens for this company
+  isActive              Boolean  @default(true)
+  showInfoFindings      Boolean  @default(true) // Show/hide INFO-level findings
+  defaultScanLevel      String   @default("STATIC") // STATIC, LIGHTWEIGHT, DEEP
+  settings              Json? // Company-specific settings
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  aiProvider         AIProvider?         @relation(fields: [aiProviderId], references: [id])
+  ownedAiProviders   AIProvider[]        @relation("ProviderOwner")
+  companySettings    CompanySettings?
+  users              User[]
+  roles              Role[]
+  applications       Application[]
+  githubConnections  GithubConnection[]
+  gitlabConnections  GitlabConnection[]
+  tokenUsages        TokenUsage[]
+  auditLogs          AuditLog[]
+  analyticsEvents    AnalyticsEvent[]
+  apiKeys            ApiKey[]
+  notifications      Notification[]
+  messagingChannels  MessagingChannel[]
+  customScanRules    CustomScanRule[]
+  queueJobs          QueueJob[]
+  triageResults      TriageResult[]
+  hardeningProposals HardeningProposal[]
+
+  @@index([slug])
+  @@index([aiProviderId])
+  @@map("companies")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String // "CI/CD Key", "GitHub Actions", etc.
+  keyHash     String    @unique // SHA-256 hash of the actual key
+  keyPrefix   String // First 8 chars for display (e.g., "aeth_1a2b...")
+  scopes      Json      @default("[\"analysis:create\", \"analysis:read\"]")
+  companyId   String
+  createdById String
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([keyHash])
+  @@index([companyId])
+  @@map("api_keys")
+}
+
+// ==================== COMPANY SETTINGS ====================
+
+model CompanySettings {
+  id                    String   @id @default(cuid())
+  companyId             String   @unique
+  sessionTimeoutMinutes Int      @default(480) // 8 hours
+  maxLoginAttempts      Int      @default(5)
+  requireTwoFactor      Boolean  @default(false)
+  allowedDomains        Json? // Email domains allowed for invites
+  webhookUrl            String? // Company webhook for events
+  rateLimitPerMinute    Int      @default(60)
+  customBranding        Json? // logo, colors, etc.
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("company_settings")
+}
+
+// ==================== USERS & AUTHENTICATION ====================
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  emailVerified        DateTime?
+  passwordHash         String? // Legacy bcrypt hash (deprecated, use SRP)
+  srpSalt              String? // SRP salt for zero-knowledge auth
+  srpVerifier          String?   @db.Text // SRP verifier (never reveals password)
+  firstName            String
+  lastName             String
+  avatarUrl            String?
+  phone                String?
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorSecret      String?
+  twoFactorBackupCodes Json?
+  isSystemAdmin        Boolean   @default(false) // Global admin - manages all companies
+  isCompanyAdmin       Boolean   @default(false) // Company admin - manages their company only
+  isActive             Boolean   @default(true)
+  isBlocked            Boolean   @default(false)
+  blockedReason        String?
+  blockedAt            DateTime?
+  lastLoginAt          DateTime?
+  lastLoginIp          String?
+  failedLoginAttempts  Int       @default(0)
+  lockoutUntil         DateTime?
+  preferredLanguage    String    @default("en") // "en" | "es"
+  termsAcceptedAt      DateTime?
+  termsAcceptedIp      String?
+  timezone             String    @default("America/Mexico_City")
+  theme                String    @default("dark") // "dark" | "light"
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  userRoles       UserRole[]
+  sessions        Session[]
+  accounts        Account[]
+  auditLogs       AuditLog[]
+  analyticsEvents AnalyticsEvent[]
+  apiKeys         ApiKey[]
+  notifications   Notification[]
+
+  @@index([email])
+  @@index([companyId])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==================== ROLES & PERMISSIONS ====================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String
+  displayName String
+  description String?  @db.Text
+  permissions Json // Array of permission strings
+  isDefault   Boolean  @default(false)
+  companyId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userRoles UserRole[]
+
+  @@unique([companyId, name])
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// ==================== APPLICATIONS & VERSIONS ====================
+
+model Application {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String
+  description String?   @db.Text
+  repoUrl     String?
+  language    String? // Primary language
+  framework   String?
+  riskLevel   RiskLevel @default(UNKNOWN)
+  lastScanAt  DateTime?
+  isActive    Boolean   @default(true)
+  companyId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company  Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  versions AppVersion[]
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@map("applications")
+}
+
+enum RiskLevel {
+  UNKNOWN
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model AppVersion {
+  id            String     @id @default(cuid())
+  version       String
+  branch        String?
+  commitHash    String?
+  sourceType    SourceType
+  sourceUrl     String? // URL, file path, or GitHub ref
+  fileSize      BigInt?
+  linesOfCode   Int?
+  applicationId String
+  createdAt     DateTime   @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  analyses    Analysis[]
+
+  @@unique([applicationId, version])
+  @@index([applicationId])
+  @@map("app_versions")
+}
+
+enum SourceType {
+  URL
+  ZIP_UPLOAD
+  GITHUB
+}
+
+// ==================== ANALYSIS ====================
+
+model Analysis {
+  id           String         @id @default(cuid())
+  status       AnalysisStatus @default(PENDING)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  duration     Int? // Duration in seconds
+  errorMessage String?
+
+  // Scan configuration
+  scanTypes    Json // Array of scan types enabled
+  scanLevel    String  @default("STATIC") // STATIC, LIGHTWEIGHT, DEEP
+  aiValidation Boolean @default(true)
+
+  // Results summary
+  totalIssues    Int @default(0)
+  criticalCount  Int @default(0)
+  highCount      Int @default(0)
+  mediumCount    Int @default(0)
+  lowCount       Int @default(0)
+  infoCount      Int @default(0)
+  falsePositives Int @default(0)
+
+  // Token usage for this analysis
+  inputTokens   BigInt   @default(0)
+  outputTokens  BigInt   @default(0)
+  estimatedCost Decimal? // Total estimated cost in USD for this scan
+
+  // SBOM data
+  sbomGenerated Boolean @default(false)
+  sbomFormat    String? // CycloneDX, SPDX
+  sbomData      Json?
+
+  appVersionId String
+  triggeredBy  String? // User ID who triggered
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  appVersion      AppVersion      @relation(fields: [appVersionId], references: [id], onDelete: Cascade)
+  vulnerabilities Vulnerability[]
+  threatModel     ThreatModel?
+
+  @@index([appVersionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("analyses")
+}
+
+enum AnalysisStatus {
+  PENDING
+  INITIALIZING
+  SCANNING
+  VALIDATING
+  ENRICHING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ==================== VULNERABILITIES ====================
+
+model Vulnerability {
+  id String @id @default(cuid())
+
+  // Classification
+  severity   Severity
+  confidence Confidence @default(MEDIUM)
+  category   String // Injection, Auth, Crypto, etc.
+
+  // Details
+  title       String
+  description String  @db.Text
+  filePath    String?
+  lineStart   Int?
+  lineEnd     Int?
+  codeSnippet String?
+
+  // CWE/CVE mapping
+  cweId String?
+  cveId String?
+
+  // Standards compliance
+  owaspTop10 String? // A01:2021, etc.
+  pciDss     String?
+  nistId     String?
+  asvs       String?
+
+  // AI validation
+  aiValidated     Boolean @default(false)
+  aiConfidence    Float?
+  isFalsePositive Boolean @default(false)
+  fpReason        String?
+
+  // Remediation
+  smartFix        String?
+  fixExplanation  String?
+  remediationCost String? // LOW, MEDIUM, HIGH
+
+  // Status
+  status     VulnStatus @default(OPEN)
+  assignedTo String?
+  resolvedAt DateTime?
+
+  // Delta tracking (New/Existing/Fixed/Reopened)
+  fingerprint     String? // hash(filePath + cwe + codeSnippet)
+  deltaStatus     String? // NEW, EXISTING, FIXED, REOPENED
+  detectionMethod String? // TAINT, SECRET, IAC, RULE, AI, SCA, DAST
+
+  // Dependency / SCA metadata
+  packageName    String?
+  packageVersion String?
+  ecosystem      String? // npm, PyPI, Maven, Go, crates, rubygems
+  rootCause      String? // condensed root-cause text (from BugHunter knowledge)
+
+  // Attack-path analysis (codex-security severity calibration)
+  attackPathDataflow       String? // source→control→sink path description
+  attackPathReachability   String? // who can trigger, preconditions, boundary
+  severityRationale        String? // calibrated explanation of final severity
+  severityChangeConditions String? // what would raise/lower severity
+  impactLevel              String? // high|medium|low|ignore
+  likelihoodLevel          String? // high|medium|low|ignore
+
+  // Validation methodology (codex-security validation rubric)
+  validationMethod     String? // crash|valgrind|debugger|test|interface|code_understanding
+  validationEvidence   String? // evidence observed
+  validationConfidence Float? // 0.0-1.0 calibrated from method strength
+  counterevidence      String? // what argues against the finding
+  proofGaps            String? // what remains unproven
+
+  // Rich finding detail (codex-security finding-detail-fields)
+  rootCauseSummary   String? // violated invariant + how implementation breaks it
+  codeEvidence       Json? // [{id,label,path,startLine,endLine,language,role,code,explanation}]
+  remediationTests   Json? // [{description,testCode}] suggested regression tests
+  preventiveControls Json? // [{control,rationale}] architectural recommendations
+
+  analysisId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@index([severity])
+  @@index([cweId])
+  @@index([status])
+  @@map("vulnerabilities")
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum Confidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum VulnStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  ACCEPTED_RISK
+  FALSE_POSITIVE
+}
+
+// ==================== VULNERABILITY CATALOG ====================
+
+model VulnerabilityCatalog {
+  id           String   @id @default(cuid())
+  cweId        String   @unique
+  name         String
+  description  String   @db.Text
+  extendedDesc String?
+  severity     Severity
+  category     String
+
+  // MITRE Top 25 Data
+  year         Int? // 2025, 2024, 2023
+  rank         Int? // Ranking in top 25
+  kevCount     Int? // CVEs in KEV (Known Exploited Vulnerabilities)
+  source       String? // "MITRE_2025", "MITRE_2024", etc.
+  lastSyncedAt DateTime?
+
+  // Standards mapping
+  owaspTop10_2021 String?
+  owaspTop10_2017 String?
+  owaspAsvs       String?
+  owaspMobile     String?
+  owaspApi        String?
+  pciDss          String?
+  nist80053       String?
+  gdpr            String?
+
+  // Detection
+  languages Json // Languages this applies to
+  patterns  Json? // Regex patterns for detection
+
+  // Remediation
+  remediation String? @db.Text
+  references  Json? // Array of reference URLs
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cweId])
+  @@index([category])
+  @@index([year])
+  @@index([rank])
+  @@map("vulnerability_catalog")
+}
+
+// ==================== FALSE POSITIVE PATTERNS ====================
+
+model FalsePositivePattern {
+  id          String  @id @default(cuid())
+  language    String // "javascript", "python", "java", etc.
+  pattern     String // Regex or code pattern
+  description String  @db.Text
+  reason      String // Why it's a false positive
+  context     String? @db.Text // When it applies (dev, test, prod)
+  cweIds      Json // Array of CWE IDs this applies to
+  examples    Json // Code examples
+
+  // Provenance & ranking (FP Knowledge System)
+  source       String  @default("manual") // builtin | gitleaks | cwe | semgrep | juliet | manual
+  confidence   Int     @default(85) // 0-100, used for scan-level thresholding
+  sourceRuleId String? // external rule id (idempotent upsert / dedup)
+  category     String? // secret | xss | sqli | path-traversal | open-redirect | ...
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([source, sourceRuleId])
+  @@index([language])
+  @@index([isActive])
+  @@index([source])
+  @@map("false_positive_patterns")
+}
+
+// ==================== GITHUB INTEGRATION ====================
+
+model GithubConnection {
+  id               String    @id @default(cuid())
+  name             String
+  accessToken      String // Encrypted
+  tokenType        String    @default("pat") // pat, oauth, app
+  scope            String?
+  username         String?
+  avatarUrl        String?
+  isActive         Boolean   @default(true)
+  lastSyncAt       DateTime?
+  webhookSecret    String?
+  webhookEnabled   Boolean   @default(false)
+  autoScanOnPR     Boolean   @default(true)
+  autoScanOnPush   Boolean   @default(false)
+  notifyOnComplete Boolean   @default(true)
+  companyId        String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  company      Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  repositories GithubRepository[]
+
+  @@index([companyId])
+  @@map("github_connections")
+}
+
+model GithubRepository {
+  id            String    @id @default(cuid())
+  repoId        String // GitHub repo ID
+  name          String
+  fullName      String
+  description   String?   @db.Text
+  htmlUrl       String
+  cloneUrl      String
+  defaultBranch String    @default("main")
+  language      String?
+  isPrivate     Boolean   @default(false)
+  isSynced      Boolean   @default(false)
+  lastSyncAt    DateTime?
+  connectionId  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  connection GithubConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, repoId])
+  @@index([connectionId])
+  @@map("github_repositories")
+}
+
+// ==================== GITLAB INTEGRATION ====================
+
+model GitlabConnection {
+  id               String   @id @default(cuid())
+  name             String
+  projectUrl       String
+  accessToken      String // Encrypted PAT
+  webhookToken     String? // For webhook verification
+  webhookEnabled   Boolean  @default(false)
+  autoScanOnMR     Boolean  @default(true)
+  autoScanOnPush   Boolean  @default(false)
+  notifyOnComplete Boolean  @default(true)
+  companyId        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("gitlab_connections")
+}
+
+// ==================== QUEUE JOBS ====================
+
+model QueueJob {
+  id          String    @id @default(cuid())
+  type        String // scan, notification
+  status      String    @default("pending") // pending, processing, completed, failed
+  payload     Json
+  result      Json?
+  error       String?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  companyId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([status, type])
+  @@index([companyId])
+  @@map("queue_jobs")
+}
+
+// ==================== TOKEN USAGE & BILLING ====================
+
+model TokenUsage {
+  id           String   @id @default(cuid())
+  date         DateTime
+  inputTokens  BigInt   @default(0)
+  outputTokens BigInt   @default(0)
+  totalCost    Decimal
+  modelId      String
+  companyId    String? // null for system usage
+  createdAt    DateTime @default(now())
+
+  model   AIModel  @relation(fields: [modelId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
+
+  @@unique([date, modelId, companyId])
+  @@index([companyId, date])
+  @@map("token_usage")
+}
+
+// ==================== AUDIT & ANALYTICS ====================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String // login, logout, create, update, delete, etc.
+  entityType String? // User, Company, Application, etc.
+  entityId   String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  userId     String?
+  companyId  String?
+  createdAt  DateTime @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([action, ipAddress])
+  @@map("audit_logs")
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  eventType  String // page_view, click, feature_use, etc.
+  eventName  String
+  properties Json?
+  pageUrl    String?
+  referrer   String?
+  sessionId  String?
+  ipAddress  String?
+  userAgent  String?
+  country    String?
+  city       String?
+  device     String?
+  browser    String?
+  os         String?
+  userId     String?
+  companyId  String?
+  createdAt  DateTime @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+// ==================== BLOCKED IPS ====================
+
+model BlockedIP {
+  id        String    @id @default(cuid())
+  ipAddress String    @unique
+  reason    String?
+  blockedBy String?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([ipAddress])
+  @@map("blocked_ips")
+}
+
+// ==================== MARKETING CAMPAIGNS ====================
+
+model MarketingCampaign {
+  id             String         @id @default(cuid())
+  name           String
+  description    String?        @db.Text
+  type           String // email, social, ads, content
+  status         CampaignStatus @default(DRAFT)
+  targetAudience Json?
+  content        Json? // AI-generated content suggestions
+  budget         Decimal?
+  startDate      DateTime?
+  endDate        DateTime?
+  metrics        Json? // Performance metrics
+  aiSuggestions  Json? // AI recommendations
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("marketing_campaigns")
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  companyId String
+  title     String
+  message   String    @db.Text
+  type      String    @default("info") // info, success, warning, error, scan_complete, vuln_found, pr_scanned
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([companyId])
+  @@map("notifications")
+}
+
+model MessagingChannel {
+  id        String   @id @default(cuid())
+  platform  String // "telegram" | "whatsapp"
+  name      String
+  config    Json // encrypted bot token, phone ID, etc.
+  isActive  Boolean  @default(false)
+  companyId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, platform])
+  @@map("messaging_channels")
+}
+
+// ==================== SECURITY ENGINE RULES (Dynamic, DB-driven) ====================
+
+model TaintSource {
+  id        String   @id @default(cuid())
+  language  String // "javascript", "python", "java", etc.
+  pattern   String // e.g. "req.body", "input(", "$_GET"
+  category  String   @default("user-input") // "user-input", "network", "file", "env"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([language, isActive])
+  @@map("taint_sources")
+}
+
+model TaintSink {
+  id        String   @id @default(cuid())
+  language  String
+  pattern   String // regex to match sink call
+  cwe       String // "CWE-89"
+  category  String // "SQL Injection", "XSS", etc.
+  severity  String // "CRITICAL", "HIGH", "MEDIUM", "LOW"
+  owasp2021 String   @default("A03:2021")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([language, isActive])
+  @@index([cwe])
+  @@map("taint_sinks")
+}
+
+model TaintSanitizer {
+  id        String   @id @default(cuid())
+  language  String
+  pattern   String // e.g. "DOMPurify.sanitize", "PreparedStatement"
+  category  String   @default("general") // "encoding", "parameterization", "validation", "crypto"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([language, isActive])
+  @@map("taint_sanitizers")
+}
+
+model SecretPattern {
+  id          String   @id @default(cuid())
+  ruleId      String   @unique // "aws-access-key", "github-pat"
+  name        String // "AWS Access Key ID"
+  regex       String // regex pattern
+  severity    String // "CRITICAL", "HIGH", "MEDIUM", "LOW"
+  cwe         String   @default("CWE-798")
+  description String   @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("secret_patterns")
+}
+
+model IacRule {
+  id          String   @id @default(cuid())
+  ruleId      String   @unique // "tf-sg-open-ingress"
+  name        String // "Security Group allows ingress from 0.0.0.0/0"
+  pattern     String // regex
+  severity    String
+  cwe         String
+  category    String // "Network Exposure", "Data Exposure", etc.
+  description String   @db.Text
+  fileTypes   Json     @default("[]") // [".tf"], ["Dockerfile"], [".yaml", ".yml"]
+  framework   String   @default("cis") // "cis", "nist", "aws", "custom"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("iac_rules")
+}
+
+model ComplianceMapping {
+  id         String   @id @default(cuid())
+  cwe        String // "CWE-89"
+  pciDss     String? // "6.5.1"
+  hipaa      String? // "164.312(a)(1)"
+  nist80053  String? // "SI-10"
+  iso27001   String? // "A.14.2.5"
+  owasp2021  String? // "A03:2021"
+  owasp2017  String? // "A1"
+  mitreTop25 Int? // rank if in MITRE Top 25
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([cwe])
+  @@map("compliance_mappings")
+}
+
+model CustomScanRule {
+  id          String   @id @default(cuid())
+  ruleId      String   @unique // "no-eval-js"
+  name        String
+  description String   @db.Text
+  severity    String
+  cwe         String?
+  owasp       String?
+  languages   Json     @default("[]") // ["javascript", "typescript"]
+  patterns    Json // [{type: "pattern", value: "eval($EXPR)"}, {type: "pattern-not", value: ...}]
+  fix         String?  @db.Text // suggested fix text
+  compliance  Json? // {pciDss: "6.5.1", nist: "SI-10"}
+  companyId   String? // null = global rule, else company-specific
+  isActive    Boolean  @default(true)
+  createdBy   String? // userId who created
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, companyId])
+  @@map("custom_scan_rules")
+}
+
+// ==================== BUGHUNTER KNOWLEDGE ====================
+
+model HuntSkill {
+  id                String    @id @default(cuid())
+  slug              String    @unique // "hunt-sqli"
+  name              String // "SQL Injection Hunting"
+  category          String // "web-app", "framework", "enterprise", "recon", "methodology", "reporting"
+  description       String    @db.Text
+  reportCount       Int       @default(0) // from frontmatter
+  sources           Json? // ["github","hackerone_public",...]
+  cweIds            Json      @default("[]") // inferred ["CWE-89","CWE-564"]
+  rootCauses        Json? // [{title, detail}]
+  attackSignals     Json? // [{type:"url|header|js|tech", pattern, note}]
+  detectionPatterns Json? // [{name, pattern, language}]
+  bypassTechniques  Json?
+  validationGate    Json? // [{question, criteria}]
+  impactExamples    Json? // [{scenario, description, cveIds:[]}]
+  chains            Json? // [{targetSkill, primitive}]
+  methodology       String? // condensed step-by-step (for AI prompts)
+  frameworks        Json      @default("[]") // ["nextjs","nodejs","laravel","springboot"]
+  languages         Json      @default("[]") // ["javascript","python",...]
+  isActive          Boolean   @default(true)
+  lastSyncedAt      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  cweMappings HuntSkillCwe[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("hunt_skills")
+}
+
+model HuntSkillCwe {
+  id        String @id @default(cuid())
+  skillId   String
+  cweId     String // "CWE-89"
+  relevance String @default("PRIMARY") // PRIMARY | SECONDARY | CHAIN
+
+  skill HuntSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, cweId])
+  @@index([cweId])
+  @@map("hunt_skill_cwe")
+}
+
+// ─── Codex Security Methodology Models ────────────────────────────────────────
+
+model ThreatModel {
+  id         String   @id @default(cuid())
+  analysisId String   @unique
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  content    String   @db.Text // Full threat model markdown
+  actors     Json? // [{name,description,capabilities}]
+  boundaries Json? // [{name,description,trustLevel}]
+  assets     Json? // [{name,sensitivity,location}]
+  threats    Json? // [{id,description,actor,asset,likelihood,impact}]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("threat_models")
+}
+
+model TriageResult {
+  id                 String   @id @default(cuid())
+  companyId          String
+  company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  inputId            String? // external scanner/advisory ID
+  sourceType         String // sarif|cve|advisory|scanner_ticket|bug_bounty|freeform
+  title              String
+  verdict            String // confirmed|not_actionable|needs_review
+  confidence         String? // high|medium|low
+  exploitRank        Int? // stack rank within verdict queue
+  boundaryAssessment Json? // {surface,sourceTrust,policyBasis,boundaryCrossed}
+  evidence           String?
+  counterevidence    String?
+  proofGaps          String?
+  affectedPaths      Json? // [{path,line,role}]
+  recommendedNext    String?
+  createdAt          DateTime @default(now())
+
+  @@index([companyId])
+  @@index([verdict])
+  @@map("triage_results")
+}
+
+model HardeningProposal {
+  id            String   @id @default(cuid())
+  analysisId    String?
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title         String
+  opportunityId String
+  diagnosis     String
+  options       Json // [{optionId,title,kind,summary,tradeoffs,residualRisks}]
+  recommended   String?
+  content       String   @db.Text // Full markdown proposal
+  createdAt     DateTime @default(now())
+
+  @@index([companyId])
+  @@index([analysisId])
+  @@map("hardening_proposals")
+}
+
+// ==================== FP KNOWLEDGE & BENCHMARK SYSTEM ====================
+
+// Provenance tracking for each external FP-knowledge source sync.
+model FpKnowledgeSource {
+  id           String    @id @default(cuid())
+  source       String    @unique // gitleaks | cwe | semgrep | juliet
+  version      String? // upstream version/tag/commit
+  checksum     String? // content hash for incremental sync
+  patternCount Int       @default(0)
+  status       String    @default("idle") // idle | syncing | ok | error
+  meta         Json? // free-form sync metadata
+  lastSyncAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("fp_knowledge_sources")
+}
+
+// CWE knowledge base ingested from MITRE CWE (+ enriched by Semgrep precision data).
+model CweKnowledge {
+  id                   String   @id @default(cuid())
+  cweId                String   @unique // "CWE-79"
+  name                 String
+  category             String?
+  description          String?  @db.Text
+  extendedDescription  String?
+  commonFalsePositives Json     @default("[]") // string[]
+  detectionGuidance    Json? // {methods:string[], doNotFlag:string[]}
+  mitigations          Json? // string[]
+  owaspTop10           String?
+  mitreTop25Rank       Int?
+  source               String   @default("cwe")
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([category])
+  @@map("cwe_knowledge")
+}
+
+// A single benchmark execution.
+// kind="detection"  → OWASP Benchmark / Juliet / CVE-benchmark style scorecard (tpr/fpr/precision/recall/score).
+// kind="assessment" → OpenSSF Scorecard / Best Practices Badge (score = normalized 0-1 headline, metrics = breakdown).
+model BenchmarkRun {
+  id         String   @id @default(cuid())
+  name       String
+  source     String // owasp-benchmark | juliet | cve-benchmark | wstg | scorecard | best-practices-badge
+  kind       String   @default("detection") // detection | assessment
+  totalCases Int      @default(0)
+  tpr        Float    @default(0) // true positive rate (0-1)
+  fpr        Float    @default(0) // false positive rate (0-1)
+  precision  Float    @default(0)
+  recall     Float    @default(0)
+  score      Float    @default(0) // detection: OWASP-style score (0-1) · assessment: normalized headline (0-1)
+  byCategory Json? // {category: {tpr,fpr,precision,recall,total}} or per-check/per-criterion breakdown
+  metrics    Json? // assessment breakdown (scorecard checks / badge tiers+criteria) or extra detection stats
+  createdAt  DateTime @default(now())
+
+  cases BenchmarkCase[]
+
+  @@index([source])
+  @@index([kind])
+  @@map("benchmark_runs")
+}
+
+model BenchmarkCase {
+  id       String  @id @default(cuid())
+  runId    String
+  cweId    String
+  category String
+  expected String // TP | FP
+  detected String // TP | FP
+  correct  Boolean
+  snippet  String?
+
+  run BenchmarkRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([cweId])
+  @@map("benchmark_cases")
+}

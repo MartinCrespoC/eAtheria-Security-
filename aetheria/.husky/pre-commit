@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔒 Running security checks..."
+
+# Check for secrets
+echo "🔍 Scanning for secrets..."
+if command -v trufflehog &> /dev/null; then
+  trufflehog filesystem . --only-verified --fail
+  if [ $? -ne 0 ]; then
+    echo "❌ Secrets detected! Please remove them before committing."
+    exit 1
+  fi
+fi
+
+# Run linter
+echo "🔍 Running ESLint..."
+cd aetheria && npx eslint . --ext .ts,.tsx --max-warnings 0
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed! Please fix errors before committing."
+  exit 1
+fi
+
+# Check for common security issues
+echo "🔍 Checking for security anti-patterns..."
+if grep -r "eval(" aetheria/src --include="*.ts" --include="*.tsx"; then
+  echo "❌ Found eval() usage - potential security risk!"
+  exit 1
+fi
+
+if grep -r "dangerouslySetInnerHTML" aetheria/src --include="*.tsx"; then
+  echo "⚠️  Warning: dangerouslySetInnerHTML found - ensure it's sanitized!"
+fi
+
+echo "✅ All security checks passed!"

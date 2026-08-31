@@ -1,0 +1,46 @@
+Contact: mailto:contacto@eatheria.com
+Expires: 2027-08-03T00:00:00.000Z
+Preferred-Languages: en, es
+Canonical: https://eatheria.com/.well-known/security.txt
+Policy: https://eatheria.com/security
+
+# EATHERIA Security - Vulnerability Disclosure Policy
+
+We take security seriously. If you discover a security vulnerability, please report it responsibly.
+
+## Reporting Guidelines
+
+1. Email contacto@eatheria.com with subject "Security Report"
+2. Include steps to reproduce
+3. Allow 90 days for remediation before public disclosure
+4. Do not exploit the vulnerability beyond proof-of-concept
+
+## Scope
+
+In scope:
+- eatheria.com and all subdomains
+- AETHERIA Security Platform application
+- API endpoints
+- Authentication mechanisms
+
+Out of scope:
+- Social engineering
+- Physical attacks
+- Denial of service
+- Spam
+- Vulnerabilities in third-party services (Stripe, Cloudflare)
+
+## Safe Harbor
+
+We will not pursue legal action against researchers who:
+- Act in good faith
+- Follow responsible disclosure
+- Do not access/modify user data
+- Do not disrupt services
+
+## Recognition
+
+Security researchers who report valid vulnerabilities will be acknowledged
+on our security page (with permission).
+
+Thank you for helping keep EATHERIA secure!

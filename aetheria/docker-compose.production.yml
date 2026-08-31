@@ -1,0 +1,132 @@
+version: "3.8"
+
+services:
+  # ============================================================
+  # PostgreSQL Database
+  # ============================================================
+  aetheria-db:
+    image: postgres:16-alpine
+    container_name: aetheria-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aetheriadb
+      POSTGRES_USER: aetheria
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - aetheria-pgdata:/var/lib/postgresql/data
+    networks:
+      - aetheria-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aetheria -d aetheriadb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Redis (rate limiting, sessions)
+  # ============================================================
+  aetheria-redis:
+    image: redis:7-alpine
+    container_name: aetheria-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - aetheria-redis:/data
+    networks:
+      - aetheria-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # AETHERIA Next.js App
+  # ============================================================
+  aetheria-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXTAUTH_URL: ${NEXTAUTH_URL:-https://aetheria.ikharoz.me}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+    container_name: aetheria-app
+    restart: unless-stopped
+    depends_on:
+      aetheria-db:
+        condition: service_healthy
+      aetheria-redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://aetheria:${DB_PASSWORD:?DB_PASSWORD is required}@aetheria-db:5432/aetheriadb
+      - REDIS_URL=redis://aetheria-redis:6379
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://aetheria.ikharoz.me}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - FORMSUBMIT_KEY=${FORMSUBMIT_KEY:-}
+      - ADMIN_FORMSUBMIT_KEY=${ADMIN_FORMSUBMIT_KEY:-}
+      - TURNSTILE_SECRET=${TURNSTILE_SECRET:-}
+      - SMTP_HOST=${SMTP_HOST:-smtp.office365.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - CONTACT_TO=${CONTACT_TO:-}
+      - NODE_ENV=production
+      # Optional: supply a stable ENCRYPTION_KEY; if empty the entrypoint
+      # auto-generates one and persists it in the secrets volume below.
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+    volumes:
+      # Persist runtime secrets (NEXTAUTH_SECRET / ENCRYPTION_KEY) and the
+      # WhatsApp linked-device credentials (Baileys) so a container recreate
+      # does NOT force a re-login or a new QR scan.
+      - aetheria-secrets:/app/.secrets
+      - aetheria-baileys-auth:/app/.baileys_auth
+    networks:
+      - aetheria-internal
+      - proxy
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  # ============================================================
+  # Nginx Proxy Manager (OPT-IN: only starts with the bundled-proxy
+  # profile — never conflicts with an existing NPM on the host).
+  #   docker compose -f docker-compose.production.yml \
+  #     --profile bundled-proxy up -d
+  # ============================================================
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    profiles:
+      - bundled-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"   # NPM Admin UI
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - proxy
+
+volumes:
+  aetheria-pgdata:
+  aetheria-redis:
+  aetheria-secrets:
+  aetheria-baileys-auth:
+  npm-data:
+  npm-letsencrypt:
+
+networks:
+  aetheria-internal:
+    driver: bridge
+  # Shared with the host's Nginx Proxy Manager so it can reach
+  # aetheria-app (serves nadro.dev + eatheria.com from one NPM).
+  # One-time: docker network create proxy
+  # On the DO droplet the shared network already exists: PROXY_NETWORK=aetheria_proxy
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

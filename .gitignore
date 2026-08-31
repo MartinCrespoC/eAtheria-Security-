@@ -1,0 +1,80 @@
+# Dependencies
+aetheria/node_modules/
+aetheria/.next/
+aetheria/mcp-server/node_modules/
+aetheria/mcp-server/dist/
+
+# IDE-generated content (regenerable, not source)
+.qoder/
+
+# Clean public-core repo (built locally, pushed to its own remote)
+aetheria-public/
+
+# Build output
+aetheria/.turbo/
+aetheria/out/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files (secrets)
+.env*
+!.env.example
+
+# SSH keys / credentials (NEVER commit)
+ssh/
+*.key
+*.pem
+
+# Editor
+.vscode/settings.json
+
+# Local test apps (large binaries, not for git)
+Apps_de_prueba/
+DOCUMENTACION_DESARROLLO/
+.qoder/
+.ai/
+
+# AI agent / dev rules (local only — never published)
+.IA/
+aetheria/.IA/
+AGENTS.md
+aetheria/AGENTS.md
+.windsurf/
+.devin/
+.claude/
+.cursor/
+.warp/
+.idea/
+aetheria/.windsurf/
+memoria.md
+aetheria/memoria.md
+
+# Local scratch / pentest artifacts (NEVER commit)
+*.png
+*.jpg
+*.jpeg
+*.gif
+!aetheria/public/**
+*_apikey.txt
+*_api_key.txt
+LINE_*.md
+aetheria/.pgdata/
+aetheria/gen-srp-pentest.ts
+aetheria/pentest-login.cjs
+aetheria/scripts/benchmark/reports/
+aetheria/.baileys_auth/
+aetheria/.wwebjs_auth/
+aetheria/.wwebjs_cache/
+
+
+# Generated benchmark standards docs (regenerate: npm run benchmark:docs)
+industry-standards/
+
+# Editor workspace files
+*.code-workspace

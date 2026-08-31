@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+*.md
+github-action
+mcp-server
+.windsurf
+.github
+tests
+vitest.config.*
+coverage
