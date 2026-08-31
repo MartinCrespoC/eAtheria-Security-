@@ -138,14 +138,32 @@ info "Checking PostgreSQL..."
 DB_HOST="$(echo "$DATABASE_URL" | sed -E 's|.*@([^:/]+).*|\1|')"
 if [ "$DB_HOST" = "localhost" ] || [ "$DB_HOST" = "127.0.0.1" ]; then
   if command -v docker >/dev/null 2>&1; then
-    if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^aetheria-db-local$'; then
+    # The docker CLI existing is not enough — the daemon socket must be
+    # accessible (user in the docker group). Fail loudly otherwise instead
+    # of swallowing "permission denied" and misreporting it later.
+    if ! docker info >/dev/null 2>&1; then
+      die "Docker daemon is not accessible (permission denied on /var/run/docker.sock).
+  Fix:  sudo usermod -aG docker \$USER   then log out/in (or run: newgrp docker)
+  Or:   install PostgreSQL natively / point DATABASE_URL at a reachable server"
+    fi
+    DB_PASS="$(echo "$DATABASE_URL" | sed -E 's|.*://[^:]+:([^@]+)@.*|\1|')"
+    DB_NAME="$(echo "$DATABASE_URL" | sed -E 's|.*/([^?]+).*|\1|')"
+    if docker ps --format '{{.Names}}' | grep -q '^aetheria-db-local$'; then
+      : # already running
+    elif docker ps -a --format '{{.Names}}' | grep -q '^aetheria-db-local$'; then
+      # Container exists but is STOPPED — restart it instead of failing
+      # with "name already in use" on docker run.
+      info "Restarting existing PostgreSQL container..."
+      docker start aetheria-db-local >/dev/null
+    else
       info "Starting local PostgreSQL container (aetheria-db-local)..."
-      DB_PASS="$(echo "$DATABASE_URL" | sed -E 's|.*://[^:]+:([^@]+)@.*|\1|')"
-      DB_NAME="$(echo "$DATABASE_URL" | sed -E 's|.*/([^?]+).*|\1|')"
-      docker run -d --name aetheria-db-local \
+      if ! docker run -d --name aetheria-db-local \
         -e POSTGRES_USER=aetheria -e POSTGRES_PASSWORD="$DB_PASS" -e POSTGRES_DB="$DB_NAME" \
         -p 5432:5432 -v aetheria-pgdata:/var/lib/postgresql/data \
-        postgres:16-alpine >/dev/null 2>&1 || warn "Could not start postgres container (maybe already running on 5432)"
+        postgres:16-alpine >/dev/null 2>&1; then
+        warn "Could not start the postgres container. If port 5432 is taken by another"
+        warn "PostgreSQL, either stop it or point DATABASE_URL at it in .env"
+      fi
     fi
   fi
 fi
@@ -154,7 +172,12 @@ info "Waiting for database to accept connections..."
 TRIES=0
 until node -e "const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.\$connect().then(()=>process.exit(0)).catch(()=>process.exit(1))" >/dev/null 2>&1; do
   TRIES=$((TRIES+1))
-  [ "$TRIES" -ge 45 ] && die "Database not reachable. Check DATABASE_URL in .env (or run: ./start.sh docker)"
+  if [ "$TRIES" -ge 45 ]; then
+    die "Database not reachable after 90s.
+  - Using Docker? Check: docker logs aetheria-db-local
+  - Using native PostgreSQL? Verify DATABASE_URL in .env
+  - Fresh machine? Try: ./start.sh docker"
+  fi
   sleep 2
 done
 ok "Database ready"
