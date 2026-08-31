@@ -29,7 +29,12 @@ export default async function AnalysesPage() {
           Historial de todos los análisis ejecutados
         </p>
       </div>
-      <AnalysesList analyses={analyses} />
+      <AnalysesList
+        analyses={analyses.map((a) => ({
+          ...a,
+          estimatedCost: a.estimatedCost === null ? null : Number(a.estimatedCost),
+        }))}
+      />
     </div>
   );
 }
