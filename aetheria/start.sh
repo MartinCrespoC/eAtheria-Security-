@@ -192,6 +192,7 @@ info "Seeding catalog + security rules (idempotent)..."
 npx tsx prisma/seed-catalog.ts >/dev/null 2>&1 || warn "seed-catalog failed (non-fatal)"
 npx tsx scripts/seed-security-rules.ts >/dev/null 2>&1 || warn "seed-security-rules failed (non-fatal)"
 npx tsx scripts/seed-bughunter.ts >/dev/null 2>&1 || true
+npx tsx scripts/seed-false-positives.ts >/dev/null 2>&1 || warn "seed-false-positives failed (non-fatal)"
 ok "Database seeded"
 
 # ---------- 6. Build + Run ----------

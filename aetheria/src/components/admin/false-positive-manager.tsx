@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Edit2, Trash2, Power, PowerOff, Code2 } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Power, PowerOff, Code2, X } from "lucide-react";
+
+const EMPTY_FORM = {
+  language: "javascript",
+  pattern: "",
+  description: "",
+  reason: "",
+  context: "",
+  cweIds: "",
+  examples: "",
+};
 
 interface FalsePositivePattern {
   id: string;
@@ -38,6 +48,9 @@ export function FalsePositiveManager() {
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [editingPattern, setEditingPattern] = useState<FalsePositivePattern | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const [stats, setStats] = useState({
     total: 0,
@@ -102,6 +115,69 @@ export function FalsePositiveManager() {
       }
     } catch (error) {
       console.error("Error deleting pattern:", error);
+    }
+  };
+
+  const openCreate = () => {
+    setEditingPattern(null);
+    setForm(EMPTY_FORM);
+    setFormError("");
+    setShowModal(true);
+  };
+
+  const openEdit = (p: FalsePositivePattern) => {
+    setEditingPattern(p);
+    setForm({
+      language: p.language,
+      pattern: p.pattern,
+      description: p.description,
+      reason: p.reason,
+      context: p.context || "",
+      cweIds: p.cweIds.join(", "),
+      examples: p.examples.join("\n"),
+    });
+    setFormError("");
+    setShowModal(true);
+  };
+
+  const savePattern = async () => {
+    setFormError("");
+    if (!form.pattern.trim() || !form.description.trim() || !form.reason.trim()) {
+      setFormError("Patrón, descripción y razón son obligatorios");
+      return;
+    }
+    const payload = {
+      language: form.language.trim(),
+      pattern: form.pattern.trim(),
+      description: form.description.trim(),
+      reason: form.reason.trim(),
+      context: form.context.trim() || undefined,
+      cweIds: form.cweIds.split(",").map((s) => s.trim()).filter(Boolean),
+      examples: form.examples.split("\n").map((s) => s.trim()).filter(Boolean),
+    };
+    setSaving(true);
+    try {
+      const res = await fetch(
+        editingPattern
+          ? `/api/admin/false-positives/${editingPattern.id}`
+          : "/api/admin/false-positives",
+        {
+          method: editingPattern ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setShowModal(false);
+        await fetchPatterns();
+      } else {
+        setFormError(data.error || "Error al guardar");
+      }
+    } catch {
+      setFormError("Error de red al guardar");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -184,6 +260,13 @@ export function FalsePositiveManager() {
             </option>
           ))}
         </select>
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 hover:bg-cyan-500/30 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Nuevo Patrón
+        </button>
       </div>
 
       {/* Patterns List */}
@@ -237,6 +320,13 @@ export function FalsePositiveManager() {
               </div>
               <div className="flex gap-2 ml-4">
                 <button
+                  onClick={() => openEdit(pattern)}
+                  className="p-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+                  title="Editar"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => toggleActive(pattern.id, pattern.isActive)}
                   className={`p-2 rounded-lg transition-colors ${
                     pattern.isActive
@@ -263,6 +353,119 @@ export function FalsePositiveManager() {
       {filteredPatterns.length === 0 && (
         <div className="text-center py-12 text-slate-400">
           No se encontraron patrones
+        </div>
+      )}
+
+      {/* Create / Edit modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-slate-800 rounded-lg border border-slate-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">
+                {editingPattern ? "Editar Patrón" : "Nuevo Patrón"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {formError && (
+              <div className="p-3 bg-red-500/20 text-red-400 rounded-lg text-sm">{formError}</div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Lenguaje</label>
+                <select
+                  value={form.language}
+                  onChange={(e) => setForm({ ...form, language: e.target.value })}
+                  className="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none"
+                >
+                  {["javascript", "typescript", "python", "java", "csharp", "php", "ruby", "go", "rust", "kotlin", "swift", "scala", "sap", "generic"].map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Contexto (opcional)</label>
+                <input
+                  value={form.context}
+                  onChange={(e) => setForm({ ...form, context: e.target.value })}
+                  placeholder="dev, test, prod..."
+                  className="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Patrón (regex o fragmento de código)</label>
+              <input
+                value={form.pattern}
+                onChange={(e) => setForm({ ...form, pattern: e.target.value })}
+                placeholder="console\\.log\\("
+                className="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none font-mono text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Descripción</label>
+              <input
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Qué detecta este patrón de falso positivo"
+                className="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Razón (por qué es falso positivo)</label>
+              <textarea
+                value={form.reason}
+                onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                rows={2}
+                className="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">CWE IDs (separados por coma)</label>
+              <input
+                value={form.cweIds}
+                onChange={(e) => setForm({ ...form, cweIds: e.target.value })}
+                placeholder="CWE-79, CWE-89"
+                className="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none font-mono text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Ejemplos (uno por línea)</label>
+              <textarea
+                value={form.examples}
+                onChange={(e) => setForm({ ...form, examples: e.target.value })}
+                rows={3}
+                className="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none font-mono text-sm"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={savePattern}
+                disabled={saving}
+                className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 hover:bg-cyan-500/30 transition-colors disabled:opacity-50"
+              >
+                {saving ? "Guardando..." : editingPattern ? "Guardar Cambios" : "Crear Patrón"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
