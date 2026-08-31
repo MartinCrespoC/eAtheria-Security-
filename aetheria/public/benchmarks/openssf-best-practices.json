@@ -1,0 +1,207 @@
+{
+  "run": "badge-100pct",
+  "source": "best-practices-badge",
+  "kind": "assessment",
+  "headlineTier": "passing",
+  "normalized": 1,
+  "tiers": {
+    "passing": {
+      "met": 19,
+      "unmet": 0,
+      "na": 48,
+      "total": 67,
+      "pct": 100
+    },
+    "silver": {
+      "met": 22,
+      "unmet": 0,
+      "na": 100,
+      "total": 122,
+      "pct": 100
+    },
+    "gold": {
+      "met": 23,
+      "unmet": 0,
+      "na": 122,
+      "total": 145,
+      "pct": 100
+    }
+  },
+  "criteriaResults": [
+    {
+      "id": "description_good",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "interact",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "contribution",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "contribution_requirements",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "SHOULD",
+      "result": "met"
+    },
+    {
+      "id": "floss_license",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "license_location",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "documentation_basics",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "documentation_interface",
+      "tier": "passing",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "repo_public",
+      "tier": "passing",
+      "majorGroup": "Change Control",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "version_tags",
+      "tier": "passing",
+      "majorGroup": "Change Control",
+      "category": "SUGGESTED",
+      "result": "met"
+    },
+    {
+      "id": "release_notes",
+      "tier": "passing",
+      "majorGroup": "Change Control",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "report_tracker",
+      "tier": "passing",
+      "majorGroup": "Reporting",
+      "category": "SHOULD",
+      "result": "met"
+    },
+    {
+      "id": "vulnerability_report_process",
+      "tier": "passing",
+      "majorGroup": "Reporting",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "build",
+      "tier": "passing",
+      "majorGroup": "Quality",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "build_common_tools",
+      "tier": "passing",
+      "majorGroup": "Quality",
+      "category": "SUGGESTED",
+      "result": "met"
+    },
+    {
+      "id": "test",
+      "tier": "passing",
+      "majorGroup": "Quality",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "test_continuous_integration",
+      "tier": "passing",
+      "majorGroup": "Quality",
+      "category": "SUGGESTED",
+      "result": "met"
+    },
+    {
+      "id": "warnings",
+      "tier": "passing",
+      "majorGroup": "Quality",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "warnings_fixed",
+      "tier": "passing",
+      "majorGroup": "Quality",
+      "category": "MUST",
+      "result": "na"
+    },
+    {
+      "id": "static_analysis",
+      "tier": "passing",
+      "majorGroup": "Analysis",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "contribution_requirements",
+      "tier": "silver",
+      "majorGroup": "Basics",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "report_tracker",
+      "tier": "silver",
+      "majorGroup": "Reporting",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "dependency_monitoring",
+      "tier": "silver",
+      "majorGroup": "Quality",
+      "category": "MUST",
+      "result": "met"
+    },
+    {
+      "id": "signed_releases",
+      "tier": "silver",
+      "majorGroup": "Security",
+      "category": "MUST",
+      "result": "na"
+    },
+    {
+      "id": "test_continuous_integration",
+      "tier": "gold",
+      "majorGroup": "Quality",
+      "category": "MUST",
+      "result": "met"
+    }
+  ]
+}

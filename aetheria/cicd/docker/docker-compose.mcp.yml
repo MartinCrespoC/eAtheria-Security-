@@ -1,0 +1,30 @@
+# ============================================================
+# AETHERIA MCP Server — standalone StreamableHTTP stack
+#
+#   docker compose -f docker-compose.mcp.yml up -d --build
+#
+# Serves the 14 AETHERIA security tools over HTTP for remote agents
+# (Devin, cloud IDEs, CI bots). Clients authenticate per-request with
+# their own AETHERIA API key (Bearer) — one container serves every
+# company. AETHERIA_API_KEY below is only a fallback for stdio use.
+# ============================================================
+name: aetheria-mcp
+
+services:
+  mcp:
+    build:
+      context: ../../mcp-server
+      dockerfile: ../cicd/docker/Dockerfile.mcp
+    container_name: aetheria-mcp
+    restart: unless-stopped
+    ports:
+      - "${MCP_HTTP_PORT:-3100}:3100"
+    environment:
+      MCP_TRANSPORT: http
+      MCP_HTTP_PORT: 3100
+      AETHERIA_URL: ${AETHERIA_URL:-http://host.docker.internal:3000}
+      # Optional fallback key (stdio clients without per-request auth):
+      AETHERIA_API_KEY: ${AETHERIA_API_KEY:-}
+    extra_hosts:
+      # Lets the container reach a platform running on the Docker host
+      - "host.docker.internal:host-gateway"

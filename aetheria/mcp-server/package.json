@@ -1,0 +1,36 @@
+{
+  "name": "@aetheria/mcp-server",
+  "version": "1.0.0",
+  "description": "AETHERIA Security MCP Server — AI-powered security scanning for Windsurf, Cursor, Claude Desktop",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "aetheria-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "security",
+    "sast",
+    "sca",
+    "aetheria",
+    "windsurf",
+    "cursor"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "adm-zip": "^0.6.0",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^22.15.3",
+    "tsx": "^4.23.1",
+    "typescript": "^5.8.3"
+  }
+}

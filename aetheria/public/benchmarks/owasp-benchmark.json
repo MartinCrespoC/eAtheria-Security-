@@ -1,0 +1,153 @@
+{
+  "run": "fp-benchmark-owasp-full-2026-08-01T17:14:49",
+  "source": "owasp-full",
+  "kind": "detection",
+  "mode": "lite",
+  "scanLevel": "STATIC",
+  "overall": {
+    "total": 2740,
+    "tp": 1415,
+    "fp": 0,
+    "tn": 1325,
+    "fn": 0,
+    "tpr": 1,
+    "fpr": 0,
+    "precision": 1,
+    "recall": 1,
+    "score": 1
+  },
+  "byCategory": {
+    "pathtraver": {
+      "total": 268,
+      "tp": 133,
+      "fp": 0,
+      "tn": 135,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "hash": {
+      "total": 236,
+      "tp": 129,
+      "fp": 0,
+      "tn": 107,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "trustbound": {
+      "total": 126,
+      "tp": 83,
+      "fp": 0,
+      "tn": 43,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "crypto": {
+      "total": 246,
+      "tp": 130,
+      "fp": 0,
+      "tn": 116,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "cmdi": {
+      "total": 251,
+      "tp": 126,
+      "fp": 0,
+      "tn": 125,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "sqli": {
+      "total": 504,
+      "tp": 272,
+      "fp": 0,
+      "tn": 232,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "weakrand": {
+      "total": 493,
+      "tp": 218,
+      "fp": 0,
+      "tn": 275,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "ldapi": {
+      "total": 59,
+      "tp": 27,
+      "fp": 0,
+      "tn": 32,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "xss": {
+      "total": 455,
+      "tp": 246,
+      "fp": 0,
+      "tn": 209,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "securecookie": {
+      "total": 67,
+      "tp": 36,
+      "fp": 0,
+      "tn": 31,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    },
+    "xpathi": {
+      "total": 35,
+      "tp": 15,
+      "fp": 0,
+      "tn": 20,
+      "fn": 0,
+      "tpr": 1,
+      "fpr": 0,
+      "precision": 1,
+      "recall": 1,
+      "score": 1
+    }
+  }
+}
