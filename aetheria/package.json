@@ -41,7 +41,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
-    "@radix-ui/react-tooltip": "^1.2.8",
+    "@radix-ui/react-tooltip": "^1.2.16",
     "@whiskeysockets/baileys": "^7.0.0-rc13",
     "adm-zip": "^0.6.0",
     "archiver": "^7.0.1",
