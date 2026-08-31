@@ -40,11 +40,25 @@ export async function GET(
 
   const stream = new ReadableStream({
     start(controller) {
+      let closed = false;
+      const safeClose = () => {
+        if (closed) return;
+        closed = true;
+        clearInterval(heartbeat);
+        unsubscribe();
+        try { controller.close(); } catch { /* already closed */ }
+      };
+
       const send = (data: unknown) => {
+        if (closed) return;
         const json = JSON.stringify(data);
         if (json !== lastSent) {
           lastSent = json;
-          controller.enqueue(encoder.encode(`data: ${json}\n\n`));
+          try {
+            controller.enqueue(encoder.encode(`data: ${json}\n\n`));
+          } catch {
+            closed = true;
+          }
         }
       };
 
@@ -62,39 +76,28 @@ export async function GET(
           send(state);
           // Close stream when done
           if (state.status === "completed" || state.status === "failed") {
-            setTimeout(() => {
-              unsubscribe();
-              controller.close();
-            }, 1000);
+            setTimeout(safeClose, 1000);
           }
         } catch {
-          unsubscribe();
+          safeClose();
         }
       });
 
       // Heartbeat every 15s to keep connection alive
       const heartbeat = setInterval(() => {
+        if (closed) { clearInterval(heartbeat); return; }
         try {
           controller.enqueue(encoder.encode(`: heartbeat\n\n`));
         } catch {
-          clearInterval(heartbeat);
-          unsubscribe();
+          safeClose();
         }
       }, 15000);
 
       // Cleanup on abort
-      request.signal.addEventListener("abort", () => {
-        clearInterval(heartbeat);
-        unsubscribe();
-        try { controller.close(); } catch { /* already closed */ }
-      });
+      request.signal.addEventListener("abort", safeClose);
 
       // Safety timeout: close after 10 minutes
-      setTimeout(() => {
-        clearInterval(heartbeat);
-        unsubscribe();
-        try { controller.close(); } catch { /* already closed */ }
-      }, 600000);
+      setTimeout(safeClose, 600000);
     },
   });
 
