@@ -43,6 +43,27 @@ Open **http://localhost:3000** → the first-run wizard guides you through the r
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="aetheria/public/screens/dashboard.png" alt="Dashboard" width="49%">
+  <img src="aetheria/public/screens/analysis.png" alt="Live scan progress" width="49%">
+</p>
+<p align="center">
+  <img src="aetheria/public/screens/scan-results.png" alt="Scan results" width="49%">
+  <img src="aetheria/public/screens/vulnerabilities.png" alt="Vulnerability list" width="49%">
+</p>
+<p align="center">
+  <img src="aetheria/public/screens/dependencies.png" alt="Dependency analysis (SCA)" width="49%">
+  <img src="aetheria/public/screens/standards.png" alt="OWASP standards benchmarks" width="49%">
+</p>
+<p align="center">
+  <img src="aetheria/public/screens/cwe-catalog.png" alt="CWE catalog" width="49%">
+  <img src="aetheria/public/screens/false-positives.png" alt="False-positive pattern manager" width="49%">
+</p>
+
+---
+
 ## ✨ Features
 
 | Module | Description |
