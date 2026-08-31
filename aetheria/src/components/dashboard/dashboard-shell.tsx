@@ -82,6 +82,7 @@ function useNav() {
     { title: t("dashboard.nav.security"), href: "/admin/security", icon: Lock, systemAdminOnly: true },
     { title: t("dashboard.nav.messaging"), href: "/admin/messaging", icon: MessageSquare, systemAdminOnly: true },
     { title: t("dashboard.nav.knowledge"), href: "/admin/knowledge", icon: Brain, systemAdminOnly: true },
+    { title: t("dashboard.nav.falsePositives"), href: "/admin/false-positives", icon: ShieldAlert, systemAdminOnly: true },
     { title: t("dashboard.nav.settings"), href: "/admin/settings", icon: Settings, systemAdminOnly: true },
   ];
 

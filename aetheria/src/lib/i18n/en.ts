@@ -512,6 +512,7 @@ const en = {
       tokens: "Tokens/Usage",
       security: "Security",
       knowledge: "Knowledge",
+      falsePositives: "False Positives",
     },
     header: {
       search: "Search...",

@@ -514,6 +514,7 @@ const es: Dictionary = {
       tokens: "Tokens/Consumo",
       security: "Seguridad",
       knowledge: "Conocimiento",
+      falsePositives: "Falsos Positivos",
     },
     header: {
       search: "Buscar...",
