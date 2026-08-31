@@ -2,110 +2,110 @@
 
 # 🛡️ AETHERIA Security Platform
 
-**Plataforma open-source de seguridad de aplicaciones con validación por IA**
-SAST · DAST · SCA · Pentesting asistido por IA · Todo en una sola instancia
+**Open-source application security platform with AI-powered validation**
+SAST · DAST · SCA · AI-assisted pentesting · All in a single instance
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](aetheria/docker-compose.yml)
 [![Security](https://img.shields.io/badge/OpenSSF-hardened-success)](.github/workflows/security-scan.yml)
 
 </div>
 
 ---
 
-## ⚡ Inicio en 3 pasos
+## ⚡ Quick start (3 steps)
 
-### Opción A — Local
+### Option A — Local
 
 ```bash
-git clone <repo-url> && cd aetheria
-./start.sh          # instala TODO y arranca en producción
+git clone https://github.com/MartinCrespoC/eAtheria-Security-.git && cd eAtheria-Security-/aetheria
+./start.sh          # installs EVERYTHING and starts in production mode
 ```
 
-### Opción B — Docker (app + PostgreSQL + Redis)
+### Option B — Docker (app + PostgreSQL + Redis)
 
 ```bash
-git clone <repo-url> && cd aetheria
+git clone https://github.com/MartinCrespoC/eAtheria-Security-.git && cd eAtheria-Security-/aetheria
 ./start.sh docker
 ```
 
-Abre **http://localhost:3000** → el wizard de primer arranque te guía (cuenta admin + API key de IA). **Eso es todo.**
+Open **http://localhost:3000** → the first-run wizard guides you through the rest (admin account + AI API key). **That's it.**
 
-> `./start.sh` es a prueba de errores e idempotente: verifica Node 20+ (instala vía nvm si falta), genera `.env` con secretos aleatorios, levanta PostgreSQL, aplica el schema, siembra el catálogo de reglas, compila y arranca. Re-ejecutarlo nunca rompe nada.
+> `./start.sh` is bulletproof and idempotent: it checks Node 20+ (installs via nvm if missing), generates `.env` with random secrets, brings up PostgreSQL, applies the schema, seeds the rules catalog, builds and starts. Re-running it never breaks anything.
 
 ```bash
-./start.sh dev      # modo desarrollo (hot reload)
-./start.sh update   # git pull + reinstalar + reiniciar
+./start.sh dev      # development mode (hot reload)
+./start.sh update   # git pull + reinstall + restart
 ```
 
 ---
 
-## ✨ Características
+## ✨ Features
 
-| Módulo | Descripción |
+| Module | Description |
 |---|---|
-| 🔬 **SAST multi-lenguaje** | Motor de taint-tracking propio (sources → sinks → sanitizers) con reglas por lenguaje |
-| 🤖 **Validación por IA** | Los hallazgos se validan con IA para eliminar falsos positivos antes de mostrarse |
-| 🕷️ **DAST** | Escaneo dinámico de aplicaciones en ejecución |
-| 📦 **SCA** | Análisis de dependencias y vulnerabilidades conocidas (CVE) |
-| 🐛 **BugHunter** | Base de conocimiento de bugs reales curada (CWE → patrones → fixes) |
-| 🎯 **Pentesting asistido** | Flujos de pentest guiados por IA con evidencia reproducible |
-| 📊 **Benchmarks OWASP** | Medición contra OWASP Benchmark / Juliet / WSTG con reportes exportables |
-| 🔌 **CI/CD** | GitHub Action, GitLab CI y CLI listos para integrar en pipelines |
-| 💬 **Notificaciones** | Telegram y WhatsApp (vía Baileys, sin browser) |
-| 🔑 **MCP Server** | Expone el motor como herramientas MCP para agentes externos |
+| 🔬 **Multi-language SAST** | Custom taint-tracking engine (sources → sinks → sanitizers) with per-language rules |
+| 🤖 **AI validation** | Findings are validated by AI to eliminate false positives before they're shown |
+| 🕷️ **DAST** | Dynamic scanning of running applications |
+| 📦 **SCA** | Dependency analysis and known-vulnerability detection (CVE) |
+| 🐛 **BugHunter** | Curated real-world bug knowledge base (CWE → patterns → fixes) |
+| 🎯 **Assisted pentesting** | AI-guided pentest flows with reproducible evidence |
+| 📊 **OWASP benchmarks** | Measured against OWASP Benchmark / Juliet / WSTG with exportable reports |
+| 🔌 **CI/CD** | Ready-to-use GitHub Action, GitLab CI and CLI for pipelines |
+| 💬 **Notifications** | Telegram and WhatsApp (via Baileys — no browser needed) |
+| 🔑 **MCP Server** | Exposes the engine as MCP tools for external agents |
 
-## 🧠 Proveedores de IA soportados
+## 🧠 Supported AI providers
 
-Google Gemini · OpenAI · Anthropic · OpenRouter · DeepSeek · xAI · Mistral · Qwen · NVIDIA NIM · Perplexity · Azure OpenAI · Endpoint custom
+Google Gemini · OpenAI · Anthropic · OpenRouter · DeepSeek · xAI · Mistral · Qwen · NVIDIA NIM · Perplexity · Azure OpenAI · Custom endpoint
 
-Los **modelos se descubren dinámicamente** desde la API de cada proveedor — pega tu API key, pulsa *Probar conexión* y la lista se puebla sola. Nada hardcodeado.
+**Models are discovered dynamically** from each provider's API — paste your API key, hit *Test connection* and the model list populates itself. Nothing hardcoded.
 
-## 💻 Lenguajes soportados
+## 💻 Supported languages
 
-**Reglas dedicadas de taint:** JavaScript/TypeScript · Python · Java · PHP · C# · Ruby · Go · **ABAP/SAP**
+**Dedicated taint rules:** JavaScript/TypeScript · Python · Java · PHP · C# · Ruby · Go · **ABAP/SAP**
 
-**Cobertura genérica:** Kotlin · Swift · C · C++ · Rust · Scala · SQL · y más
+**Generic coverage:** Kotlin · Swift · C · C++ · Rust · Scala · SQL · and more
 
-## 📁 Uploads hasta 1 GB
+## 📁 Uploads up to 1 GB
 
-Sube proyectos completos en ZIP / 7z / RAR de hasta **1 GB**. Límite ajustable desde Admin → Configuración (`max_file_size_mb`).
+Upload complete projects as ZIP / 7z / RAR up to **1 GB**. Limit adjustable from Admin → Settings (`max_file_size_mb`).
 
 ---
 
 ## 🏗️ Stack
 
 - **Framework:** Next.js 16 (App Router, Turbopack) + React 19 + TypeScript
-- **DB:** PostgreSQL 16 + Prisma 6
+- **Database:** PostgreSQL 16 + Prisma 6
 - **Cache/queue:** Redis
-- **Auth:** NextAuth (SRP-ready, 2FA TOTP, API keys con scopes)
-- **UI:** Tailwind CSS 4 + componentes propios (dark/light, i18n ES/EN)
+- **Auth:** NextAuth (SRP, TOTP 2FA, scoped API keys)
+- **UI:** Tailwind CSS 4 + custom components (dark/light, ES/EN i18n)
 
-## 🔒 Seguridad del proyecto
+## 🔒 Project security
 
-- Sin secretos hardcodeados — todo vía `.env` o variables de entorno
-- Secrets scan, rate limiting, CSP, audit logging, API keys con scopes granulares
-- Workflows de CI con escaneo de seguridad diario ([`.github/workflows/security-scan.yml`](.github/workflows/security-scan.yml))
-- Dependabot activado para npm y GitHub Actions
-- Releases firmados y empaquetados por CI ([`release.yml`](.github/workflows/release.yml))
+- No hardcoded secrets — everything via `.env` or environment variables
+- Secrets scanning, rate limiting, CSP, audit logging, granularly-scoped API keys
+- CI workflows with daily security scanning ([`.github/workflows/security-scan.yml`](.github/workflows/security-scan.yml))
+- Dependabot enabled for npm and GitHub Actions
+- Releases built and packaged by CI ([`release.yml`](.github/workflows/release.yml))
 
-## 📖 Documentación adicional
+## 📖 Additional documentation
 
-| Carpeta | Contenido |
+| Folder | Contents |
 |---|---|
-| [`cicd/`](aetheria/cicd) | Integración CI/CD (pipelines de ejemplo) |
-| [`github-action/`](aetheria/github-action) | GitHub Action oficial |
-| [`gitlab-ci/`](aetheria/gitlab-ci) | Templates para GitLab CI |
-| [`mcp-server/`](aetheria/mcp-server) | Servidor MCP standalone |
-| [`docker/`](aetheria/docker) | Entrypoint y assets de container |
+| [`cicd/`](aetheria/cicd) | CI/CD integration (pipeline examples) |
+| [`github-action/`](aetheria/github-action) | Official GitHub Action |
+| [`gitlab-ci/`](aetheria/gitlab-ci) | GitLab CI templates |
+| [`mcp-server/`](aetheria/mcp-server) | Standalone MCP server |
+| [`docker/`](aetheria/docker) | Container entrypoint and assets |
 
-## 🤝 Contribuir
+## 🤝 Contributing
 
-Lee **[CONTRIBUTING.md](CONTRIBUTING.md)** — PRs bienvenidos.
+Read **[CONTRIBUTING.md](CONTRIBUTING.md)** — PRs welcome.
 
-## 📄 Licencia
+## 📄 License
 
 [MIT](LICENSE) © 2026 MartinCrespoC
