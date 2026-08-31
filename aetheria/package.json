@@ -58,7 +58,7 @@
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
-    "lucide-react": "^1.8.0",
+    "lucide-react": "^1.34.0",
     "next": "^16.2.12",
     "next-auth": "^4.24.14",
     "next-intl": "^4.9.1",
