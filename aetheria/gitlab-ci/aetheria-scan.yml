@@ -19,7 +19,7 @@
 #     stage: test
 #     variables:
 #       AETHERIA_API_KEY: $AETHERIA_API_KEY   # CI/CD variable (masked), aeth_xxx
-#       AETHERIA_URL: "https://aetheria.ikharoz.me"
+#       AETHERIA_URL: "https://eatheria.com"
 #       SCAN_TYPES: "sast,sca"
 #       FAIL_ON: "critical"                    # critical | high | medium | low | none
 #
@@ -28,7 +28,7 @@
 #   AETHERIA_API_KEY  (masked)  Your AETHERIA API key (aeth_xxx)
 #
 # OPTIONAL VARIABLES (override per-job or globally):
-#   AETHERIA_URL   Base URL of the AETHERIA API. Default: https://aetheria.ikharoz.me
+#   AETHERIA_URL   Base URL of the AETHERIA API. Default: https://eatheria.com
 #   SCAN_TYPES     Comma-separated: sast,sca,dast. Default: sast,sca
 #   FAIL_ON        Severity gate: critical|high|medium|low|none. Default: critical
 # ============================================================
@@ -37,7 +37,7 @@ aetheria-scan:
   image: alpine:3.20
   stage: test
   variables:
-    AETHERIA_URL: "https://aetheria.ikharoz.me"
+    AETHERIA_URL: "https://eatheria.com"
     SCAN_TYPES: "sast,sca"
     FAIL_ON: "critical"
   before_script:

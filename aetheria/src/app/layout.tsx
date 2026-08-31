@@ -10,7 +10,7 @@ import { LanguageProvider } from "@/components/providers/language-provider";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n/types";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXTAUTH_URL || "https://aetheria.ikharoz.me"),
+  metadataBase: new URL(process.env.NEXTAUTH_URL || "https://eatheria.com"),
   title: {
     default: "EATHERIA Security — AI SAST, DAST & SCA | Fortify Alternative",
     template: "%s | EATHERIA Security",

@@ -237,7 +237,7 @@ if [ "$FIX_PR" = "true" ] && [ -n "$GITHUB_TOKEN" ]; then
       echo "   $PATCH_COUNT files patched — creating PR..."
 
       git config user.name "aetheria-security[bot]"
-      git config user.email "security-bot@aetheria.ikharoz.me"
+      git config user.email "security-bot@eatheria.com"
       git checkout -b "$FIX_BRANCH"
 
       CHANGES_SUMMARY=""

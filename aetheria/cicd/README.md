@@ -90,7 +90,7 @@ jobs:
         uses: MartinCrespoCalderon/eAtheria-Security/aetheria/github-action@main
         with:
           api-key: ${{ secrets.AETHERIA_API_KEY }}
-          api-url: "https://aetheria.ikharoz.me"   # o tu self-host
+          api-url: "https://eatheria.com"   # o tu self-host
           scan-types: "sast,sca"
           fail-on: "critical"
           comment-on-pr: "true"
@@ -166,7 +166,7 @@ docker compose -f docker-compose.mcp.yml up -d --build
 ```bash
 cd mcp-server && npm ci && npm run build
 MCP_TRANSPORT=http MCP_HTTP_PORT=3100 \
-  AETHERIA_URL=https://aetheria.ikharoz.me \
+  AETHERIA_URL=https://eatheria.com \
   node dist/index.js
 ```
 

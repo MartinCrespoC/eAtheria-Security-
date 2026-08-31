@@ -38,7 +38,7 @@ Works with **Windsurf**, **Cursor**, **Claude Desktop**, and any MCP-compatible 
 
 ## 📋 Prerequisites
 
-1. **AETHERIA Account** - Sign up at [aetheria.ikharoz.me](https://aetheria.ikharoz.me)
+1. **AETHERIA Account** - Sign up at [eatheria.com](https://eatheria.com)
 2. **Active License** - Free tier available (10 scans/month)
 3. **API Key** - Generate from dashboard: `Settings → API Keys`
    - Required scope: `analysis:create`
@@ -56,7 +56,7 @@ npm run build
 
 ### Step 2: Get API Key
 
-1. Login to [AETHERIA Dashboard](https://aetheria.ikharoz.me)
+1. Login to [AETHERIA Dashboard](https://eatheria.com)
 2. Go to `Settings → API Keys`
 3. Click `Create API Key`
 4. Copy your key (starts with `aeth_`)
@@ -79,7 +79,7 @@ Choose your IDE below and add the configuration:
       "args": ["/absolute/path/to/aetheria/mcp-server/dist/index.js"],
       "env": {
         "AETHERIA_API_KEY": "aeth_your_api_key_here",
-        "AETHERIA_URL": "https://aetheria.ikharoz.me"
+        "AETHERIA_URL": "https://eatheria.com"
       }
     }
   }
@@ -101,7 +101,7 @@ Choose your IDE below and add the configuration:
       "args": ["/absolute/path/to/aetheria/mcp-server/dist/index.js"],
       "env": {
         "AETHERIA_API_KEY": "aeth_your_api_key_here",
-        "AETHERIA_URL": "https://aetheria.ikharoz.me"
+        "AETHERIA_URL": "https://eatheria.com"
       }
     }
   }
@@ -120,7 +120,7 @@ Choose your IDE below and add the configuration:
       "args": ["/absolute/path/to/aetheria/mcp-server/dist/index.js"],
       "env": {
         "AETHERIA_API_KEY": "aeth_your_api_key_here",
-        "AETHERIA_URL": "https://aetheria.ikharoz.me"
+        "AETHERIA_URL": "https://eatheria.com"
       }
     }
   }
@@ -153,7 +153,7 @@ hosted MCP serves every company (the token is forwarded to the platform).
 
 ```bash
 # Hosted mode
-MCP_TRANSPORT=http MCP_HTTP_PORT=3100 AETHERIA_URL=https://aetheria.ikharoz.me \
+MCP_TRANSPORT=http MCP_HTTP_PORT=3100 AETHERIA_URL=https://eatheria.com \
   node dist/index.js
 # → listening on :3100/mcp  (MCP_TRANSPORT=all runs stdio + http together)
 ```
@@ -254,7 +254,7 @@ You should see all 10 tools listed. If not, check:
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `AETHERIA_API_KEY` | ✅ | — | Your API key (starts with `aeth_`) |
-| `AETHERIA_URL` | ❌ | `https://aetheria.ikharoz.me` | AETHERIA server URL (change for self-hosted) |
+| `AETHERIA_URL` | ❌ | `https://eatheria.com` | AETHERIA server URL (change for self-hosted) |
 
 ## 🔐 Security & Privacy
 
@@ -336,11 +336,11 @@ You should see all 10 tools listed. If not, check:
 
 - Check `AETHERIA_URL` is accessible
 - Verify firewall/proxy settings
-- Test with `curl https://aetheria.ikharoz.me/api/auth/session`
+- Test with `curl https://eatheria.com/api/auth/session`
 
 ## 🤝 Support
 
-- **Documentation**: [docs.aetheria.io](https://aetheria.ikharoz.me)
+- **Documentation**: [docs.aetheria.io](https://eatheria.com)
 - **Email**: support@aetheria.io
 - **Security Issues**: security@aetheria.io (see `/.well-known/security.txt`)
 

@@ -297,7 +297,7 @@ Edita \`~/.codeium/windsurf/mcp_config.json\`:
       "args": ["/ruta/absoluta/a/aetheria/mcp-server/dist/index.js"],
       "env": {
         "EATHERIA_API_KEY": "aeth_tu_api_key_aqui",
-        "EATHERIA_URL": "https://aetheria.ikharoz.me"
+        "EATHERIA_URL": "https://eatheria.com"
       }
     }
   }
@@ -372,7 +372,7 @@ El usuario recibirá un email con instrucciones.
 
 ## Usar API Key
 \`\`\`bash
-curl -X POST https://aetheria.ikharoz.me/api/ai/pentesting \\
+curl -X POST https://eatheria.com/api/ai/pentesting \\
   -H "Authorization: Bearer aeth_..." \\
   -H "Content-Type: application/json" \\
   -d '{

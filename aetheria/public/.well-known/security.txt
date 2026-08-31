@@ -28,7 +28,7 @@ Out of scope:
 - Physical attacks
 - Denial of service
 - Spam
-- Vulnerabilities in third-party services (Stripe, Cloudflare)
+- Vulnerabilities in third-party services (Cloudflare)
 
 ## Safe Harbor
 

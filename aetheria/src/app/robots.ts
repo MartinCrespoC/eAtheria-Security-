@@ -11,6 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/dashboard/", "/admin/", "/api/"],
       },
     ],
-    sitemap: `${process.env.NEXTAUTH_URL || "https://aetheria.ikharoz.me"}/sitemap.xml`,
+    sitemap: `${process.env.NEXTAUTH_URL || "https://eatheria.com"}/sitemap.xml`,
   };
 }

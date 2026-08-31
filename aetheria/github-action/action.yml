@@ -13,7 +13,7 @@ inputs:
   api-url:
     description: "AETHERIA API URL"
     required: false
-    default: "https://aetheria.ikharoz.me"
+    default: "https://eatheria.com"
   scan-types:
     description: "Comma-separated scan types: sast,sca,dast"
     required: false

@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 // ─── Configuration ────────────────────────────────────────────
-const AETHERIA_URL = process.env.AETHERIA_URL || "https://aetheria.ikharoz.me";
+const AETHERIA_URL = process.env.AETHERIA_URL || "https://eatheria.com";
 const AETHERIA_API_KEY = process.env.AETHERIA_API_KEY || "";
 const MCP_TRANSPORT = process.env.MCP_TRANSPORT || "stdio"; // stdio | http | all
 const MCP_HTTP_PORT = Number(process.env.MCP_HTTP_PORT || 3100);
