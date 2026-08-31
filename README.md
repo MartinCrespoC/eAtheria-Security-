@@ -76,6 +76,20 @@ Upload complete projects as ZIP / 7z / RAR up to **1 GB**. Limit adjustable from
 
 ---
 
+## 📊 Industry Standards benchmarks
+
+The **Standards** page shows detection accuracy and security posture measured against open standards. Populate it with:
+
+```bash
+npm run benchmark:run                                # curated detection baseline (OWASP-style TPR/FPR)
+npm run benchmark:run -- --source=scorecard          # OpenSSF Scorecard assessment of this repo
+npm run benchmark:run -- --source=badge --tier=silver  # OpenSSF Best Practices Badge
+```
+
+Optional corpora: `npm run benchmark:setup` downloads OWASP Benchmark and Juliet suites for full-scale runs.
+
+---
+
 ## 🏗️ Stack
 
 - **Framework:** Next.js 16 (App Router, Turbopack) + React 19 + TypeScript
